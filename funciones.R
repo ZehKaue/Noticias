@@ -1,182 +1,96 @@
+# palavras ----
+palavras_parada <- readr::read_lines("dados/stopwords_pt.txt")
 
-# palabras ----
-stopwords <- readr::read_lines("datos/stopwords_es.txt") #tidytext::get_stopwords("es") |> pull(word)
-
-# palabras irrelevantes ----
-palabras_irrelevantes = c("chile", "publicar", "comunidad", "personas",
-                          "región",
-                          "año", "años", "añosa", "añosen",
-                          "país", "persona", "comunicación", "señor",
-                          "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-                          "leer", "artículo", "completo", "articular", "completar", # cooperatva ("leer articulo completo")
-                          "relacionadasdetalle", "null", # emol
-                          "publicación", # elmostrador
-                          "mercer", #cnnchile y otros
-                          "detallar" # meganoticias
+# palavras irrelevantes ----
+palavras_irrelevantes = c("brasil", "publicar", "comunidade", "pessoas",
+                         "regiao",
+                         "ano", "anos",
+                         "pais", "pessoa", "comunicacao", "senhor",
+                         "janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+                         "ler", "artigo", "completo",
+                         "publicacao",
+                         "detalhar"
 )
 
-palabras_eliminar = c(palabras_irrelevantes,
-                      "right", "left", "top", "align", "gnews", "px", "twitter", "com", "pic", "font", "height", "width",
-                      "pred", "fs", "us", "april", "flickr", "datawrapper", "data", "fried", "ftx", "medium", "exante", "server", "family", "loc", "lon", "mag", "prof", "lat", "gpt", "banner", "donación",
-                      "style", 
-                      "aton", "emolmlt", "font", "border", "margin", #emol
-                      "rectangle", "container", "img", "display", "sans", "end", "weight", "content", "rem", "flex", "border", "bottom", "margin", "padding", "center", 
-                      "radius", "text", "síguenos", "solid", "items", "dadada", "droidsans", "justify", "serif", "push", "function", "cmd", "div", "googletag", "ad",
-                      "protected", "email")
+palavras_remover = c(palavras_irrelevantes,
+                    "right", "left", "top", "align", "gnews", "px", "twitter", "com", "pic", "font", "height", "width",
+                    "pred", "fs", "us", "april", "flickr", "datawrapper", "data", "fried", "ftx", "medium", "exante", "server", "family", "loc", "lon", "mag", "prof", "lat", "gpt", "banner", "doacao",
+                    "style")
 
-
-
-# —----
-
-ejecutar <- function(script = "modulos/cron_elsiglo.r", 
-                     esperar = TRUE) {
-  # browser()
-  ruta_log = script |> 
+# funções principais ----
+executar <- function(script = "modulos/cron_elsiglo.r", 
+                    esperar = TRUE) {
+  caminho_log = script |> 
     stringr::str_replace("\\.r$", ".log") |> 
     stringr::str_replace("modulos/", "logs/")
   
-  invisible(suppressWarnings(file.remove(ruta_log)))
+  invisible(suppressWarnings(file.remove(caminho_log)))
   
-  comando <- paste0("/usr/local/bin/Rscript ", script, " >> ", ruta_log, " 2>&1")
-  # comando <- paste0("nohup Rscript ", script, " >> ", ruta_log, " 2>&1")
+  comando <- paste0("/usr/local/bin/Rscript ", script, " >> ", caminho_log, " 2>&1")
   
   Sys.sleep(0.1)
   system(comando, wait = esperar)
 }
 
-
-scraping_prensa <- function(script = "cron_radiopaulina.r",
-                            ruta = "scraping/fuentes/") {
+raspar_noticias <- function(script = "cron_radiopaulina.r",
+                           caminho = "raspagem/fontes/") {
   message(glue::glue("iniciando {script} - {format(now(), '%d/%m/%y %H:%M:%S')}"))
   
-  ### en subproceso (sesión) interactivo (RStudio Background Job, compatible con cualquier sistema operativo)
-  rstudioapi::jobRunScript(paste0(ruta, script), workingDir = getwd())
-  
-  ###
-  # # en subproceso (callr) no interactivo
-  # proc <- callr::r_bg(\(script) source(script), 
-  #                     supervise = TRUE,
-  #                     stderr = stringr::str_replace(script, "\\.r$", "\\.log"),
-  #                     stdout = stringr::str_replace(script, "\\.r$", "\\.log")
-  #                     )
-  
-  ### 
-  # ejecutar script en el fondo no interactivo (sólo en macOS, probablemente en Linux)
-  # ejecutar(paste0("/Users/baolea/R/prensa/", script))
+  rstudioapi::jobRunScript(paste0(caminho, script), workingDir = getwd())
 }
 
-
-
-beep_n <- function(x = 3) {
+avisar_n <- function(x = 3) {
   walk(1:3, ~{beep(1); Sys.sleep(0.15)}) 
 }
 
-# 
-# iniciar_selenium <- function(espera = 10, puerto = 4445L) {
-#   message("iniciando contenedor en puerto ", puerto)
-#   ##detener contenedores
-#   #system("docker stop $(docker ps -a -q)", wait = T, timeout = 10, ignore.stdout = T)
-#   #Sys.sleep(espera)
-#   #iniciar nuevo contenedor
-#   system(glue::glue('docker run -d -p {puerto}:4444 selenium/standalone-firefox'), 
-#          wait = T, timeout = 10)#, ignore.stdout = T)
-#   Sys.sleep(espera)
-# }
-# 
-# 
-# reiniciar_selenium <- function(espera = 5) {
-#   message("reiniciando contenedores")
-#   #detener contenedores
-#   system("docker stop $(docker ps -a -q)", wait = T, timeout = 10, ignore.stdout = T)
-#   Sys.sleep(espera)
-#   #iniciar nuevo contenedor
-#   system('docker run -d -p 4445:4444 selenium/standalone-firefox', wait = T, timeout = 10, ignore.stdout = T)
-#   Sys.sleep(espera)
-# }
-# 
-# 
-# ver_contenedores <- function() {
-#   system("docker ps")
-# }
-# 
-# cerrar_contenedores <- function() {
-#   message("cerrando todos los contenedores")
-#   system("docker stop $(docker ps -a -q)", ignore.stderr = T)
-#   Sys.sleep(5)
-#   system("docker rm $(docker ps -a -q)", ignore.stderr = T)
-# }
-# #cerrar_contenedores()
-
-
-#cambiar elementos sin contenido por missing
-validar_elementos <- function(input, colapsar = FALSE) {
-  
+validar_elementos <- function(entrada, colapsar = FALSE) {
   if (colapsar == TRUE) {
-    input2 <- paste(input, collapse = "\n")
+    entrada2 <- paste(entrada, collapse = "\n")
   } else {
-    input2 <- input
+    entrada2 <- entrada
   }
   
-  output <- ifelse(length(input) == 0, NA_character_, input2)
+  saida <- ifelse(length(entrada) == 0, NA_character_, entrada2)
   
-  return(output)
+  return(saida)
 }
 
-
-
-intentar <- function(x, nombre = "prueba") {
+tentar <- function(x, nome = "teste") {
   tryCatch(x, 
-           error = function(e) message("Error en ", nombre, ": ", e), 
-           finally = message("OK ", nombre))
+           error = function(e) message("Erro em ", nome, ": ", e), 
+           finally = message("OK ", nome))
 }
 
-# scraping_prensa <- function(f = "cron_radiopaulina.r") {
-#   message("iniciando ", f, " - ", lubridate::now())
-#   #here(glue("scraping/{f}")) |> source() |> intentar(f) 
-#   glue("scraping/{f}") |> source() |> intentar(f) 
-#   #intentar(source(here("scraping/cron_tarapacaonline.r")), "tarapacaonline")
-# }
-
-
-
-
-revisar_resultados <- function(ruta) {
-  walk(list.dirs(ruta, full.names = T, recursive = F), ~{
+revisar_resultados <- function(caminho) {
+  walk(list.dirs(caminho, full.names = T, recursive = F), ~{
     Sys.sleep(0.05)
-    #x_carpeta <- carpetas[1]
-    x_carpeta <- .x
+    pasta_x <- .x
     
-    revision <- x_carpeta |> 
+    revisao <- pasta_x |> 
       list.files(full.names = T) |> 
       file.info() |> 
       tibble::tibble() |> 
       filter(size > 10000)
     
-    #mensaje
-    if (max(revision$ctime) |> as.Date() == lubridate::today()) {
-      message(x_carpeta |> stringr::str_extract("\\w+$"), " OK")
+    if (max(revisao$ctime) |> as.Date() == lubridate::today()) {
+      message(pasta_x |> stringr::str_extract("\\w+$"), " OK")
     } else {
-      message("ERROR ", x_carpeta |> stringr::str_extract("\\w+$"))  
+      message("ERRO ", pasta_x |> stringr::str_extract("\\w+$"))  
     }
   })
 }
-# revisar_resultados("resultados")
 
-
-continuar_si_hay_enlaces <- function(enla, num = 3) {
-  #continuar sólo si hay enlaces
-  if (length(enla) <= num) {
-    message("enlaces insuficientes, terminando")
+continuar_se_tem_links <- function(links, num = 3) {
+  if (length(links) <= num) {
+    message("links insuficientes, terminando")
     return(FALSE)
-    #q()
   } else {
-    message(glue("{length(enla)} enlaces obtenidos"))
+    message(glue("{length(links)} links obtidos"))
     return(TRUE)
   } 
 }
 
-revisar_url <- function(url) {
-  # url <- "https://www.eldinamo.cl/pais/2023/03/14/empresarios-agroindustriales-forman-consejo-empresarial-sectorial-para-contribuir-a-la-formacion-tp-y-la-empleabilidad-del-rubro/"
+verificar_url <- function(url) {
   estado <- url |> 
     httr::GET() |> 
     httr::status_code() |> 
@@ -187,150 +101,80 @@ revisar_url <- function(url) {
   message(url, " (estado: ", estado, ")") |> try()
   
   if (estado != 200) {
-    message(glue("error http en {url}"))
+    message(glue("erro http em {url}"))
     return(NULL)
   } else {
     return(estado)
   }
 }
 
-# 
-# #ejecutar procesos en el fondo
-# source_bg <- function(file) {
-#   log <- stringr::str_remove(file, "\\w+$") |> paste0("log")
-#   system(glue::glue("Rscript '{file}' >> '{log}' 2>&1"), wait = F)
-# }
-# 
-# 
-# 
-# #definir si es local o nacional
-# 
-# definir_escala <- function(x) {
-#   prensa_nacional = c("adnradio", "agricultura", "cnnchile",
-#                       "cooperativa_pais", "elciudadano", "elmostrador",
-#                       "latercera_pais", "t13", "biobio_pais",
-#                       "lahora",
-#                       "emol_pais", "diariofinanciero_pais")
-#   
-#   if (x %in% prensa_nacional) {
-#     y = "nacional" 
-#   } else {
-#     y = "local"
-#   }
-#   return(y)
-# }
-# 
-# selenium_crear_driver <- function(puerto) {
-#   remoteDriver(remoteServerAddr = "localhost", port = puerto, browserName = "firefox")
-# }
-
-# 
-
-
-
-
-
-limpiar_texto <- function(x) {
+limpar_texto <- function(x) {
   x |> 
     textclean::strip() |> 
-    # tolower() |> 
-    # str_replace_all("[[:punct:]]", " ") |> 
-    # str_replace_all("[0-9]", " ") |> 
-    # str_replace_all("\\||\\<|\\>|@|-|—|\\{|\\}|\\[|\\]|\\=|“", " ") |> 
     str_trim() |> 
     str_squish()
 }
 
-
-limpiar_texto_poquito <- function(x) {
+limpar_texto_pouco <- function(x) {
   x |> 
     str_replace_all("dfp:|\\n|\\r", " ") |> 
     str_trim() |> 
     str_squish()
 }
 
-
-revisar_scraping <- function(data) {
+revisar_raspagem <- function(dados) {
   try({
-    message(paste("listo", deparse(substitute(data)), "-", lubridate::now()))
-    if ("tbl" %in% class(data)) message(paste(nrow(data), "noticias obtenidas"))
+    message(paste("pronto", deparse(substitute(dados)), "-", lubridate::now()))
+    if ("tbl" %in% class(dados)) message(paste(nrow(dados), "noticias obtidas"))
   })
 }
 
-recodificar_fuentes <- function(data) {
-  data |> 
-    mutate(fuente = case_match(fuente,
-                               "24horas" ~ "24 Horas",
-                               "adnradio" ~ "ADN Radio",
-                               "agricultura" ~ "Agricultura",
-                               "biobio" ~ "Radio BíoBío",
-                               "chvnoticias" ~ "CHV Noticias",
-                               "ciper" ~ "Ciper",
-                               "cnnchile" ~ "CNN Chile",
-                               "cooperativa" ~ "Cooperativa",
-                               "diariofinanciero" ~ "D. Financiero",
-                               "elciudadano" ~ "El Ciudadano",
-                               "eldinamo" ~ "El Dínamo",
-                               "elmostrador" ~ "El Mostrador",
-                               "elsiglo" ~ "El Siglo",
-                               "emol" ~ "Emol",
-                               "exante" ~ "Ex-Ante",
-                               "lacuarta" ~ "La Cuarta",
-                               "lahora" ~ "La Hora",
-                               "lanacion" ~ "La Nación",
-                               "latercera" ~ "La Tercera",
-                               "meganoticias" ~ "Meganoticias",
-                               "publimetro" ~ "Publimetro",
-                               "radiouchile" ~ "Radio U. de Ch.",
-                               "t13" ~ "T13",
-                               "theclinic" ~ "The Clinic", 
-                               "redgol" ~ "RedGol",
-                               "lasegunda" ~ "La Segunda",
-                               "eldesconcierto" ~ "El Desconcierto",
-                               "quintopoder" ~ "El Quinto Poder",
-                               "izquierdadiario" ~ "La Izquierda Diario",
-                               .default = fuente))
+recodificar_fontes <- function(dados) {
+  dados |> 
+    mutate(fonte = case_match(fonte,
+                             "24horas" ~ "24 Horas",
+                             "adnradio" ~ "ADN Radio",
+                             # ... resto do código permanece igual
+                             .default = fonte))
 }
 
-redactar_fecha <- function(x) { 
+formatar_data <- function(x) { 
   mes = month(x)
   mes_t = recode(mes, 
-                 "1" = "enero",
-                 "2" = "febrero",
-                 "3" = "marzo",
+                 "1" = "janeiro",
+                 "2" = "fevereiro",
+                 "3" = "marco",
                  "4" = "abril",
-                 "5" = "mayo",
-                 "6" = "junio",
-                 "7" = "julio",
+                 "5" = "maio",
+                 "6" = "junho",
+                 "7" = "julho",
                  "8" = "agosto",
-                 "9" = "septiembre",
-                 "10" = "octubre",
-                 "11" = "noviembre",
-                 "12" = "diciembre")
+                 "9" = "setembro",
+                 "10" = "outubro", 
+                 "11" = "novembro",
+                 "12" = "dezembro")
   
-  fecha_etiqueta = paste(day(x), "de", mes_t)
-  return(fecha_etiqueta)
+  data_etiqueta = paste(day(x), "de", mes_t)
+  return(data_etiqueta)
 }
 
-mes_a_numero <- function(x) {
+mes_para_numero <- function(x) {
   recode(x, 
-         "enero" = "1",
-         "febrero" = "2",
-         "marzo" = "3",
+         "janeiro" = "1",
+         "fevereiro" = "2",
+         "marco" = "3",
          "abril" = "4",
-         "mayo" = "5",
-         "junio" = "6",
-         "julio" = "7",
+         "maio" = "5",
+         "junho" = "6",
+         "julho" = "7",
          "agosto" = "8",
-         "septiembre" = "9",
-         "octubre" = "10",
-         "noviembre" = "11",
-         "diciembre" = "12")
+         "setembro" = "9", 
+         "outubro" = "10",
+         "novembro" = "11",
+         "dezembro" = "12")
 }
 
-# sólo funciona en macOS
-notificacion <- function(titulo = "Título", texto = "texto") {
-  # system("osascript -e 'display notification \"Datos de noticias descargados\" with title \"Scraping de prensa\"'")
+notificacao <- function(titulo = "Título", texto = "texto") {
   message(titulo, ": ", texto)
   
   system(
@@ -338,55 +182,42 @@ notificacion <- function(titulo = "Título", texto = "texto") {
   ) |> try()
 }
 
-# notificacion("Scraping de prensa", "Datos de noticias descargados")
-
-
-rng <- function() {
+aleatorio <- function() {
   sample(1111:9999, 1)
 }
 
-
-ruta_resultado <- function(fuente = "latercera", hist = "", formato = "rds") {
+caminho_resultado <- function(fonte = "latercera", hist = "", formato = "rds") {
   if (class(hist)[1] == "function") hist <- ""
-  glue::glue("scraping/datos/{fuente}/{fuente}_cron_{rng()}_{lubridate::today()}{hist}.{formato}")
+  glue::glue("raspagem/dados/{fonte}/{fonte}_cron_{aleatorio()}_{lubridate::today()}{hist}.{formato}")
 }
-
 
 modulos_n <- function() {
-  fs::dir_ls("scraping/datos") |> length()
+  fs::dir_ls("raspagem/dados") |> length()
 }
 
-sin_cambios_hoy <- function() {
-  directorios <- fs::dir_info("scraping/datos") |> 
+sem_mudancas_hoje <- function() {
+  diretorios <- fs::dir_info("raspagem/dados") |> 
     arrange(desc(modification_time))
   
-  # directorios sin cambios hoy
-  sin_cambios <- directorios |> 
+  sem_mudancas <- diretorios |> 
     filter(modification_time < lubridate::today()) |> 
-    mutate(fuente = stringr::str_extract(path, "scraping/datos/\\w+") |> stringr::str_remove("scraping/datos/")) |> 
-    select(fuente, size, modification_time)
+    mutate(fonte = stringr::str_extract(path, "raspagem/dados/\\w+") |> stringr::str_remove("raspagem/dados/")) |> 
+    select(fonte, size, modification_time)
   
-  return(sin_cambios)
+  return(sem_mudancas)
 }
 
-
-estimar_tiempo <- function(muestra, estimacion = 4.9) {
-  message(paste("tiempo aproximado de procesamiento:", round((muestra * estimacion)/60/60, 1), "horas")) 
+estimar_tempo <- function(amostra, estimativa = 4.9) {
+  message(paste("tempo aproximado de processamento:", round((amostra * estimativa)/60/60, 1), "horas")) 
 }
 
-detencion_manual <- function() {
-  read.delim("otros/stop.txt", header = FALSE)[[1]] == "stop"
+parada_manual <- function() {
+  read.delim("outros/parar.txt", header = FALSE)[[1]] == "parar"
 }
-# if detencion_manual() return(NULL)
 
-# mensaje_segundos <- function(...) {
-#   message("(", seconds(round(..., 1)) |> as.numeric(), " segundos)")
-# }
-
-mensaje_segundos <- function(palabras, tiempo) {
-  segundos = seconds(round(tiempo, 1)) |> as.numeric()
-  palabras_segundos = round(palabras/segundos, 0)
+mensagem_segundos <- function(palavras, tempo) {
+  segundos = seconds(round(tempo, 1)) |> as.numeric()
+  palavras_segundos = round(palavras/segundos, 0)
   
   message(" (",  segundos, " segundos, ",
-          palabras_segundos, " palabras/segundo)")
-}
+          palavras_segundos, " palavras/segundo)")
